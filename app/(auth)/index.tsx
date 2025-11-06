@@ -258,7 +258,9 @@ const styles = StyleSheet.create({
   },
   headerText: {
     fontSize: 14,
-    color: '#9CA3AF',
+    fontFamily: 'Product Sans Medium',
+    fontWeight: '500',
+    color: '#1F2937',
     textTransform: 'lowercase',
   },
   content: {
@@ -268,7 +270,8 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontFamily: 'Product Sans Medium',
+    fontWeight: '500',
     color: '#000',
     marginBottom: 40,
   },
@@ -280,13 +283,16 @@ const styles = StyleSheet.create({
     borderBottomColor: '#E5E7EB',
     paddingVertical: 12,
     fontSize: 16,
+    fontFamily: 'Product Sans Medium',
+    fontWeight: '500',
     color: '#000',
   },
   label: {
     fontSize: 14,
-    color: '#6B7280',
-    marginBottom: 12,
+    fontFamily: 'Product Sans Medium',
     fontWeight: '500',
+    color: '#1F2937',
+    marginBottom: 12,
   },
   genderContainer: {
     flexDirection: 'row',
@@ -308,11 +314,14 @@ const styles = StyleSheet.create({
   },
   genderText: {
     fontSize: 16,
-    color: '#6B7280',
+    fontFamily: 'Product Sans Medium',
+    fontWeight: '500',
+    color: '#1F2937',
   },
   genderTextSelected: {
+    fontFamily: 'Product Sans Medium',
+    fontWeight: '500',
     color: '#FFFFFF',
-    fontWeight: '600',
   },
   signUpButton: {
     backgroundColor: '#5D4037',
@@ -328,7 +337,8 @@ const styles = StyleSheet.create({
   signUpButtonText: {
     color: '#FFF',
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'Product Sans Medium',
+    fontWeight: '500',
     letterSpacing: 1,
   },
   dividerContainer: {
@@ -337,7 +347,9 @@ const styles = StyleSheet.create({
   },
   dividerText: {
     fontSize: 14,
-    color: '#9CA3AF',
+    fontFamily: 'Product Sans Medium',
+    fontWeight: '500',
+    color: '#1F2937',
   },
   socialButtons: {
     flexDirection: 'row',
@@ -367,11 +379,15 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 14,
-    color: '#9CA3AF',
+    fontFamily: 'Product Sans Medium',
+    fontWeight: '500',
+    color: '#1F2937',
   },
   footerLink: {
     fontSize: 14,
-    color: '#4B5563',
+    fontFamily: 'Product Sans Medium',
+    fontWeight: '500',
+    color: '#1F2937',
     textDecorationLine: 'underline',
   },
 });

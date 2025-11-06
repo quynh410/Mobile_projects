@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Platform } from 'react-native';
+import { Platform, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type TabBarIconProps = {
@@ -20,13 +20,25 @@ export default function TabLayout() {
         tabBarActiveTintColor: '#5D4037',
         tabBarInactiveTintColor: '#9CA3AF',
         tabBarStyle: {
-          backgroundColor: '#FFFFFF',
-          borderTopWidth: 1,
-          borderTopColor: '#E5E7EB',
+          backgroundColor: 'transparent',
+          borderTopWidth: 0,
           height: Platform.OS === 'ios' ? 60 + insets.bottom : 60,
           paddingBottom: Platform.OS === 'ios' ? insets.bottom : 8,
           paddingTop: 8,
+          position: 'absolute',
+          elevation: 0,
+          shadowOpacity: 0,
         },
+        tabBarBackground: () => (
+          <View style={{
+            flex: 1,
+            backgroundColor: '#FFFFFF',
+            borderTopLeftRadius: 40,
+            borderTopRightRadius: 40,
+            borderTopWidth: 1,
+            borderTopColor: '#E5E7EB',
+          }} />
+        ),
         tabBarLabelStyle: {
           fontSize: 12,
           fontWeight: '500',
@@ -69,6 +81,7 @@ export default function TabLayout() {
               color={color} 
             />
           ),
+          tabBarStyle: { display: 'none' },
         }}
       />
       <Tabs.Screen
@@ -82,6 +95,18 @@ export default function TabLayout() {
               color={color} 
             />
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="login"
+        options={{
+          tabBarButton: () => null, 
+        }}
+      />
+      <Tabs.Screen
+        name="register"
+        options={{
+          tabBarButton: () => null, // Ẩn hoàn toàn khỏi tab bar
         }}
       />
     </Tabs>
