@@ -1,7 +1,10 @@
+import { useCart } from '@/contexts/CartContext';
+import { formatVND } from '@/utils/formatCurrency';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React from 'react';
 import {
+  Alert,
   Dimensions,
   Image,
   Platform,
@@ -15,138 +18,205 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 const { width } = Dimensions.get('window');
 
-const cartItems = [
-  {
-    id: 1,
-    name: 'Sportwear Set',
-    price: 80.00,
-    size: 'L',
-    color: 'Cream',
-    quantity: 1,
-    image: 'https://tse2.mm.bing.net/th/id/OIP.xmHZTMQbaWSCl1Ind2ZB7QHaHa?rs=1&pid=ImgDetMain&o=7&rm=3',
-    selected: true,
-  },
-  {
-    id: 2,
-    name: 'Turtleneck Sweater',
-    price: 39.99,
-    size: 'M',
-    color: 'White',
-    quantity: 1,
-    image: 'https://tse1.mm.bing.net/th/id/OIP.EAoBsN9jV-ZXLVP2uswxfgHaLG?rs=1&pid=ImgDetMain&o=7&rm=3',
-    selected: false,
-  },
-  {
-    id: 3,
-    name: 'Cotton T-shirt',
-    price: 30.00,
-    size: 'L',
-    color: 'Black',
-    quantity: 1,
-    image: 'https://handcmediastorage.blob.core.windows.net/productimages/TH/THPZA001-N01-169571-1400px-1820px.jpg',
-    selected: true,
-  },
-];
-
 export default function CartScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [items, setItems] = useState(cartItems);
+  const { items, removeItem, updateQuantity, clearCart, getTotalPrice } = useCart();
 
-  const productPrice = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const handleRemoveItem = (itemId: string, itemName: string) => {
+    Alert.alert(
+      'Xác nhận xóa',
+      `Bạn có chắc chắn muốn xóa "${itemName}" khỏi giỏ hàng?`,
+      [
+        {
+          text: 'Hủy',
+          style: 'cancel',
+        },
+        {
+          text: 'Xóa',
+          style: 'destructive',
+          onPress: () => removeItem(itemId),
+        },
+      ]
+    );
+  };
+
+  const handleClearCart = () => {
+    if (items.length === 0) return;
+
+    Alert.alert(
+      'Xác nhận xóa',
+      'Bạn có chắc chắn muốn xóa tất cả sản phẩm khỏi giỏ hàng?',
+      [
+        {
+          text: 'Hủy',
+          style: 'cancel',
+        },
+        {
+          text: 'Xóa tất cả',
+          style: 'destructive',
+          onPress: () => clearCart(),
+        },
+      ]
+    );
+  };
+
+  const handleUpdateQuantity = (itemId: string, newQuantity: number) => {
+    if (newQuantity <= 0) {
+      const item = items.find(i => i.id === itemId);
+      if (item) {
+        handleRemoveItem(itemId, item.productName);
+      }
+    } else {
+      updateQuantity(itemId, newQuantity);
+    }
+  };
+
+  const totalPrice = getTotalPrice();
   const shipping = 0;
-  const subtotal = productPrice + shipping;
+  const subtotal = totalPrice + shipping;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: Platform.OS === 'ios' ? 0 : insets.top }]}>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.push('/(tabs)' as any);
+            }
+          }}
+        >
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Your Cart</Text>
-        <View style={styles.headerRight} />
+        <Text style={styles.headerTitle}>Giỏ hàng</Text>
+        {items.length > 0 && (
+          <TouchableOpacity onPress={handleClearCart}>
+            <Text style={styles.clearAllText}>Xóa tất cả</Text>
+          </TouchableOpacity>
+        )}
+        {items.length === 0 && <View style={styles.headerRight} />}
       </View>
 
-      <ScrollView 
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Cart Items */}
-        {items.map((item) => (
-          <View key={item.id} style={styles.cartItem}>
-            {/* Checkbox */}
-            <TouchableOpacity 
-              style={styles.checkboxContainer}
-              onPress={() => {
-                setItems(items.map(i => 
-                  i.id === item.id ? { ...i, selected: !i.selected } : i
-                ));
-              }}
-            >
-              <View style={[
-                styles.checkbox,
-                item.selected && styles.checkboxSelected
-              ]}>
-                {item.selected && (
-                  <Ionicons name="checkmark" size={16} color="#FFF" />
-                )}
+      {items.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="bag-outline" size={80} color="#9CA3AF" />
+          <Text style={styles.emptyText}>Giỏ hàng của bạn đang trống</Text>
+          <TouchableOpacity
+            style={styles.shopNowButton}
+            onPress={() => router.push('/(tabs)' as any)}
+          >
+            <Text style={styles.shopNowText}>Mua sắm ngay</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <>
+          <ScrollView 
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Cart Items */}
+            {items.map((item) => (
+              <View key={item.id} style={styles.cartItem}>
+                {/* Product Image */}
+                <Image
+                  source={
+                    item.imageUrl
+                      ? { uri: item.imageUrl }
+                      : require('@/assets/images/24642656f175b762469766070dae1ee73196af89.png')
+                  }
+                  style={styles.productImage}
+                  resizeMode="cover"
+                />
+
+                {/* Product Info */}
+                <View style={styles.productInfo}>
+                  <View style={styles.productHeader}>
+                    <Text style={styles.productName} numberOfLines={2}>
+                      {item.productName}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => handleRemoveItem(item.id, item.productName)}
+                      style={styles.deleteButton}
+                    >
+                      <Ionicons name="trash-outline" size={20} color="#EF4444" />
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={styles.productPrice}>{formatVND(item.price)}</Text>
+                  {(item.colorName || item.sizeName) && (
+                    <Text style={styles.productDetails}>
+                      {item.colorName && `Màu: ${item.colorName}`}
+                      {item.colorName && item.sizeName && ' | '}
+                      {item.sizeName && `Size: ${item.sizeName}`}
+                    </Text>
+                  )}
+
+                  {/* Quantity Selector */}
+                  <View style={styles.quantityContainer}>
+                    <TouchableOpacity
+                      style={styles.quantityButton}
+                      onPress={() => handleUpdateQuantity(item.id, item.quantity - 1)}
+                    >
+                      <Ionicons name="remove" size={18} color="#000" />
+                    </TouchableOpacity>
+                    <Text style={styles.quantityText}>{item.quantity}</Text>
+                    <TouchableOpacity
+                      style={[
+                        styles.quantityButton,
+                        item.quantity >= item.stockQuantity && styles.quantityButtonDisabled
+                      ]}
+                      onPress={() => handleUpdateQuantity(item.id, item.quantity + 1)}
+                      disabled={item.quantity >= item.stockQuantity}
+                    >
+                      <Ionicons
+                        name="add"
+                        size={18}
+                        color={item.quantity >= item.stockQuantity ? "#9CA3AF" : "#000"}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                </View>
               </View>
-            </TouchableOpacity>
+            ))}
 
-            {/* Product Image */}
-            <Image
-              source={{ uri: item.image }}
-              style={styles.productImage}
-              resizeMode="cover"
-            />
-
-            {/* Product Info */}
-            <View style={styles.productInfo}>
-              <Text style={styles.productName}>{item.name}</Text>
-              <Text style={styles.productPrice}>$ {item.price.toFixed(2)}</Text>
-              <Text style={styles.productDetails}>
-                Size: {item.size} | Color: {item.color}
-              </Text>
-
-              {/* Quantity Selector */}
-              <View style={styles.quantityContainer}>
-                <TouchableOpacity style={styles.quantityButton}>
-                  <Ionicons name="remove" size={18} color="#000" />
-                </TouchableOpacity>
-                <Text style={styles.quantityText}>{item.quantity}</Text>
-                <TouchableOpacity style={styles.quantityButton}>
-                  <Ionicons name="add" size={18} color="#000" />
-                </TouchableOpacity>
+            {/* Price Summary */}
+            <View style={styles.priceSummary}>
+              <View style={styles.priceRow}>
+                <Text style={styles.priceLabel}>Tổng tiền hàng</Text>
+                <Text style={styles.priceValue}>{formatVND(totalPrice)}</Text>
+              </View>
+              <View style={styles.priceRow}>
+                <Text style={styles.priceLabel}>Phí vận chuyển</Text>
+                <Text style={styles.priceValue}>Miễn phí</Text>
+              </View>
+              <View style={[styles.priceRow, styles.priceRowLast]}>
+                <Text style={styles.priceLabel}>Tổng thanh toán</Text>
+                <Text style={styles.subtotalValue}>{formatVND(subtotal)}</Text>
               </View>
             </View>
-          </View>
-        ))}
+          </ScrollView>
 
-        {/* Price Summary */}
-        <View style={styles.priceSummary}>
-          <View style={styles.priceRow}>
-            <Text style={styles.priceLabel}>Product price</Text>
-            <Text style={styles.priceValue}>${productPrice.toFixed(0)}</Text>
+          {/* Checkout Button */}
+          <View style={[
+            styles.bottomBar, 
+            { 
+              paddingBottom: Platform.OS === 'ios' 
+                ? (insets.bottom > 0 ? insets.bottom + 70 : 90)
+                : 90
+            }
+          ]}>
+            <TouchableOpacity 
+              style={styles.checkoutButton}
+              onPress={() => router.push('/checkout' as any)}
+            >
+              <Text style={styles.checkoutButtonText}>Proceed to checkout</Text>
+            </TouchableOpacity>
           </View>
-          <View style={styles.priceRow}>
-            <Text style={styles.priceLabel}>Shipping</Text>
-            <Text style={styles.priceValue}>Freeship</Text>
-          </View>
-          <View style={[styles.priceRow, styles.priceRowLast]}>
-            <Text style={styles.priceLabel}>Subtotal</Text>
-            <Text style={styles.subtotalValue}>${subtotal.toFixed(0)}</Text>
-          </View>
-        </View>
-      </ScrollView>
-
-      {/* Checkout Button */}
-      <View style={[styles.bottomBar, { paddingBottom: Platform.OS === 'ios' ? insets.bottom : 16 }]}>
-        <TouchableOpacity style={styles.checkoutButton}>
-          <Text style={styles.checkoutButtonText}>Proceed to checkout</Text>
-        </TouchableOpacity>
-      </View>
+        </>
+      )}
     </SafeAreaView>
   );
 }
@@ -173,77 +243,97 @@ const styles = StyleSheet.create({
     color: '#000',
   },
   headerRight: {
-    width: 24,
+    width: 60,
+  },
+  clearAllText: {
+    fontSize: 14,
+    fontFamily: 'Product Sans Medium',
+    fontWeight: '500',
+    color: '#EF4444',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  emptyText: {
+    fontSize: 16,
+    fontFamily: 'Product Sans Medium',
+    fontWeight: '500',
+    color: '#6B7280',
+    marginTop: 16,
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  shopNowButton: {
+    backgroundColor: '#374151',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+  },
+  shopNowText: {
+    fontSize: 16,
+    fontFamily: 'Product Sans Medium',
+    fontWeight: '500',
+    color: '#FFFFFF',
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     padding: 20,
-    paddingBottom: 100,
+    paddingBottom: 180,
   },
   cartItem: {
     backgroundColor: '#FAFAFA',
     borderRadius: 12,
-    padding: 0,
+    padding: 12,
     marginBottom: 16,
     flexDirection: 'row',
-    position: 'relative',
     overflow: 'hidden',
   },
-  checkboxContainer: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-    zIndex: 10,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: '#9CA3AF',
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkboxSelected: {
-    backgroundColor: '#20B2AA',
-    borderColor: '#20B2AA',
-  },
   productImage: {
-    width: 120,
-    height: 150,
-    borderTopLeftRadius: 12,
-    borderBottomLeftRadius: 12,
+    width: 100,
+    height: 120,
+    borderRadius: 8,
     backgroundColor: '#E5E7EB',
   },
   productInfo: {
     flex: 1,
+    marginLeft: 12,
     justifyContent: 'space-between',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+  },
+  productHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 4,
   },
   productName: {
+    fontSize: 16,
+    fontFamily: 'Product Sans Medium',
+    fontWeight: '500',
+    color: '#000',
+    flex: 1,
+    marginRight: 8,
+  },
+  deleteButton: {
+    padding: 4,
+  },
+  productPrice: {
     fontSize: 18,
     fontFamily: 'Product Sans Medium',
     fontWeight: '500',
     color: '#000',
-    marginBottom: 8,
-  },
-  productPrice: {
-    fontSize: 20,
-    fontFamily: 'Product Sans Medium',
-    fontWeight: '500',
-    color: '#000',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   productDetails: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: 'Product Sans Medium',
     fontWeight: '500',
-    color: '#1F2937',
-    marginBottom: 'auto',
+    color: '#6B7280',
+    marginBottom: 8,
   },
   quantityContainer: {
     flexDirection: 'row',
@@ -262,6 +352,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     minWidth: 32,
   },
+  quantityButtonDisabled: {
+    opacity: 0.5,
+  },
   quantityText: {
     fontSize: 16,
     fontFamily: 'Product Sans Medium',
@@ -276,6 +369,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 20,
     marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   priceRow: {
     flexDirection: 'row',
@@ -304,9 +399,9 @@ const styles = StyleSheet.create({
     color: '#000',
   },
   subtotalValue: {
-    fontSize: 16,
+    fontSize: 18,
     fontFamily: 'Product Sans Medium',
-    fontWeight: '500',
+    fontWeight: '600',
     color: '#000',
   },
   bottomBar: {
@@ -315,18 +410,33 @@ const styles = StyleSheet.create({
     borderTopColor: '#E5E7EB',
     paddingHorizontal: 20,
     paddingTop: 16,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: -2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   checkoutButton: {
-    backgroundColor: '#374151',
-    borderRadius: 12,
-    paddingVertical: 23,
+    backgroundColor: '#363636',
+    borderRadius: 20,
+    paddingVertical: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkoutButtonText: {
     fontSize: 16,
     fontFamily: 'Product Sans Medium',
-    fontWeight: '500',
+    fontWeight: '600',
     color: '#FFFFFF',
   },
 });

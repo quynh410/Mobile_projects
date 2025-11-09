@@ -24,7 +24,6 @@ export default function SearchScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [recentSearches, setRecentSearches] = useState(['Sunglasses', 'Sweater', 'Hoodie']);
 
-  // Ẩn tab bar khi vào màn hình này
   useFocusEffect(
     React.useCallback(() => {
       const parent = navigation.getParent();

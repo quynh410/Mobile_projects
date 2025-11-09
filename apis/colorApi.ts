@@ -57,7 +57,7 @@ export const getColorsByProductId = async (productId: number): Promise<ColorList
     
     if (status === 404) {
       console.log(`Product ${productId} has no colors (404)`);
-      return {
+      return {  
         statusCode: 200,
         message: 'No colors found for this product',
         data: [],

@@ -1,5 +1,6 @@
 import { getAllProducts } from '@/apis';
 import BannerCarousel from '@/components/BannerCarousel';
+import Sidebar from '@/components/Sidebar';
 import { ProductResponse } from '@/types/product';
 import { formatVND } from '@/utils/formatCurrency';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,6 +26,7 @@ export default function HomeScreen() {
   const [selectedCategory, setSelectedCategory] = useState('Women');
   const [featureProducts, setFeatureProducts] = useState<ProductResponse[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+  const [sidebarVisible, setSidebarVisible] = useState(false);
 
   useEffect(() => {
     loadFeatureProducts();
@@ -88,10 +90,11 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      <Sidebar visible={sidebarVisible} onClose={() => setSidebarVisible(false)} />
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => setSidebarVisible(true)}>
             <Ionicons name="menu" size={24} color="#000" />
           </TouchableOpacity>
           <Text style={styles.logo}>GemStore</Text>

@@ -1,7 +1,8 @@
+import { useCart } from '@/contexts/CartContext';
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Platform, View } from 'react-native';
+import { Platform, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type TabBarIconProps = {
@@ -12,6 +13,9 @@ type TabBarIconProps = {
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
+  const { items } = useCart();
+  
+  const cartItemCount = items.length;
 
   return (
     <Tabs
@@ -19,30 +23,32 @@ export default function TabLayout() {
         headerShown: false,
         tabBarActiveTintColor: '#5D4037',
         tabBarInactiveTintColor: '#9CA3AF',
+        tabBarShowLabel: false, // Bỏ chữ, chỉ hiển thị icon
+        tabBarIconStyle: {
+          marginTop: 4,
+        },
+        tabBarItemStyle: {
+          paddingVertical: 4,
+        },
         tabBarStyle: {
-          backgroundColor: 'transparent',
-          borderTopWidth: 0,
-          height: Platform.OS === 'ios' ? 60 + insets.bottom : 60,
-          paddingBottom: Platform.OS === 'ios' ? insets.bottom : 8,
+          backgroundColor: '#EEEEEE',
+          borderTopWidth: 1,
+          borderTopColor: '#E5E7EB',
+          borderTopLeftRadius: 40,
+          borderTopRightRadius: 40,
+          height: Platform.OS === 'ios' ? 60 + (insets.bottom || 0) : 60,
+          paddingBottom: Platform.OS === 'ios' ? (insets.bottom || 8) : 8,
           paddingTop: 8,
+          paddingHorizontal: 0,
+          marginHorizontal: 0,
           position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
           elevation: 0,
           shadowOpacity: 0,
         },
-        tabBarBackground: () => (
-          <View style={{
-            flex: 1,
-            backgroundColor: '#FFFFFF',
-            borderTopLeftRadius: 40,
-            borderTopRightRadius: 40,
-            borderTopWidth: 1,
-            borderTopColor: '#E5E7EB',
-          }} />
-        ),
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '500',
-        },
+        tabBarBackground: () => null,
       }}>
       <Tabs.Screen
         name="index"
@@ -51,7 +57,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size, focused }: TabBarIconProps) => (
             <Ionicons 
               name={focused ? "home" : "home-outline"} 
-              size={size} 
+              size={size + 2} 
               color={color} 
             />
           ),
@@ -64,7 +70,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size, focused }: TabBarIconProps) => (
             <Ionicons 
               name={focused ? "search" : "search-outline"} 
-              size={size} 
+              size={size + 2} 
               color={color} 
             />
           ),
@@ -75,13 +81,36 @@ export default function TabLayout() {
         options={{
           title: 'Cart',
           tabBarIcon: ({ color, size, focused }: TabBarIconProps) => (
-            <Ionicons 
-              name={focused ? "bag" : "bag-outline"} 
-              size={size} 
-              color={color} 
-            />
+            <View style={{ position: 'relative' }}>
+              <Ionicons 
+                name={focused ? "bag" : "bag-outline"} 
+                size={size + 2} 
+                color={color} 
+              />
+              {cartItemCount > 0 && (
+                <View style={{
+                  position: 'absolute',
+                  top: -6,
+                  right: -8,
+                  backgroundColor: '#EF4444',
+                  borderRadius: 10,
+                  minWidth: 10,
+                  height: 13,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  paddingHorizontal: 4,
+                }}>
+                  <Text style={{
+                    color: '#FFFFFF',
+                    fontSize: 10,
+                    fontWeight: '600',
+                  }}>
+                    {cartItemCount > 99 ? '99+' : cartItemCount}
+                  </Text>
+                </View>
+              )}
+            </View>
           ),
-          tabBarStyle: { display: 'none' },
         }}
       />
       <Tabs.Screen
@@ -91,22 +120,10 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size, focused }: TabBarIconProps) => (
             <Ionicons 
               name={focused ? "person" : "person-outline"} 
-              size={size} 
+              size={size + 2} 
               color={color} 
             />
           ),
-        }}
-      />
-      <Tabs.Screen
-        name="login"
-        options={{
-          tabBarButton: () => null, 
-        }}
-      />
-      <Tabs.Screen
-        name="register"
-        options={{
-          tabBarButton: () => null, // Ẩn hoàn toàn khỏi tab bar
         }}
       />
     </Tabs>

@@ -44,6 +44,10 @@ export default function ProfileScreen() {
     router.replace('/(auth)');
   };
 
+  const handleSettings = () => {
+    router.push('/profile-setting' as any);
+  };
+
   const menuItems: MenuItem[] = [
     {
       id: 'address',
@@ -103,7 +107,7 @@ export default function ProfileScreen() {
             <Text style={styles.title}>{userData?.name || 'User'}</Text>
             <Text style={styles.email}>{userData?.email || ''}</Text>
           </View>
-          <TouchableOpacity style={styles.settingsButton}>
+          <TouchableOpacity style={styles.settingsButton} onPress={handleSettings}>
             <Ionicons name="settings-outline" size={24} color="#000" />
           </TouchableOpacity>
         </View>
@@ -215,4 +219,3 @@ const styles = StyleSheet.create({
     color: '#000',
   },
 });
-

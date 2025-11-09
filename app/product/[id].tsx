@@ -1,4 +1,5 @@
 import { getAllProducts, getColorsByProductId, getProductById, getProductsByCategory, getSizesByProductId } from '@/apis';
+import { useCart } from '@/contexts/CartContext';
 import { ColorResponse } from '@/types/color';
 import { ProductResponse } from '@/types/product';
 import { SizeResponse } from '@/types/size';
@@ -7,16 +8,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Dimensions,
-    FlatList,
-    Image,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  FlatList,
+  Image,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -26,6 +28,7 @@ export default function ProductDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const insets = useSafeAreaInsets();
+  const { addItem } = useCart();
   const [product, setProduct] = useState<ProductResponse | null>(null);
   const [colors, setColors] = useState<ColorResponse[]>([]);
   const [sizes, setSizes] = useState<SizeResponse[]>([]);
@@ -33,6 +36,7 @@ export default function ProductDetailScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedColor, setSelectedColor] = useState<number | null>(null);
   const [selectedSize, setSelectedSize] = useState<number | null>(null);
+  const [quantity, setQuantity] = useState(1);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [expandedDescription, setExpandedDescription] = useState(false);
   const [expandedReviews, setExpandedReviews] = useState(false);
@@ -42,6 +46,11 @@ export default function ProductDetailScreen() {
   useEffect(() => {
     loadProductData();
   }, [id]);
+
+  useEffect(() => {
+    // Reset quantity when product changes
+    setQuantity(1);
+  }, [product?.productId]);
 
   const loadProductData = async () => {
     if (!id) return;
@@ -69,19 +78,18 @@ export default function ProductDetailScreen() {
 
       try {
         const sizesData = await getSizesByProductId(productId);
-        if (sizesData.data && sizesData.data.length > 0) {
+        console.log('111111111111111111111111111111111111111111111111111111111:', sizesData.data);
+        if (sizesData.data && sizesData.data?.length > 0) {
           setSizes(sizesData.data);
           setSelectedSize(sizesData.data[0].sizeId);
-        }
+        } 
       } catch (sizeError) {
         console.warn('Error loading sizes:', sizeError);
       }
 
-      // Load similar products (cùng category hoặc random products, trừ sản phẩm hiện tại)
       try {
         let similarProductsData: ProductResponse[] = [];
         if (productData.categoryId) {
-          // Lấy products cùng category
           const categoryProducts = await getProductsByCategory(productData.categoryId, 0, 10);
           if (categoryProducts.data?.content) {
             similarProductsData = categoryProducts.data.content.filter(
@@ -90,7 +98,6 @@ export default function ProductDetailScreen() {
           }
         }
         
-        // Nếu không đủ, lấy thêm products khác
         if (similarProductsData.length < 3) {
           const allProducts = await getAllProducts(0, 10, 'productId', 'DESC');
           if (allProducts.data?.content) {
@@ -154,6 +161,30 @@ export default function ProductDetailScreen() {
       'Pink': '#FFC0CB',
       'Gray': '#808080',
       'Grey': '#808080',
+      'Brown': '#A52A2A',
+      'Purple': '#800080',
+      'Orange': '#FFA500',
+      'Cream': '#F5F5DC',
+      'Khaki': '#F0E68C',
+      'Maroon': '#800000',
+      'Navy': '#000080',
+      'Olive': '#808000',
+      'Silver': '#C0C0C0',
+      'Gold': '#FFD700',
+      'Platinum': '#E5E4E2',
+      'Emerald': '#50C878',
+      'Turquoise': '#40E0D0',
+      'Violet': '#8A2BE2',
+      'Indigo': '#4B0082',
+      'Lavender': '#E6E6FA',
+      'Fuchsia': '#FF00FF',
+      'Magenta': '#FF00FF',
+      'Crimson': '#DC143C',
+      'Ruby': '#E0115F',
+      'Sapphire': '#0F52BA',
+      'Topaz': '#FFC300',
+      'Cyan': '#00FFFF',
+      'Teal': '#008080',
     };
     return colorMap[colorName] || '#CCCCCC';
   };
@@ -180,6 +211,54 @@ export default function ProductDetailScreen() {
       );
     }
     return stars;
+  };
+
+  const handleAddToCart = () => {
+    if (!product) return;
+
+    if (product.stockQuantity < quantity) {
+      Alert.alert('Lỗi', 'Số lượng sản phẩm không đủ trong kho');
+      return;
+    }
+    if (colors.length > 0 && !selectedColor) {
+      Alert.alert('Lỗi', 'Vui lòng chọn màu sắc');
+      return;
+    }
+
+    if (sizes.length > 0 && !selectedSize) {
+      Alert.alert('Lỗi', 'Vui lòng chọn kích thước');
+      return;
+    }
+    const selectedColorData = colors.find(c => c.colorId === selectedColor);
+    const selectedSizeData = sizes.find(s => s.sizeId === selectedSize);
+
+    addItem({
+      productId: product.productId,
+      productName: product.productName,
+      price: product.price,
+      imageUrl: product.imageUrl,
+      quantity: quantity,
+      colorId: selectedColor || undefined,
+      colorName: selectedColorData?.colorName,
+      sizeId: selectedSize || undefined,
+      sizeName: selectedSizeData?.sizeName,
+      stockQuantity: product.stockQuantity,
+    });
+
+    Alert.alert(
+      'Thành công',
+      'Đã thêm sản phẩm vào giỏ hàng',
+      [
+        {
+          text: 'Tiếp tục mua sắm',
+          style: 'cancel',
+        },
+        {
+          text: 'Xem giỏ hàng',
+          onPress: () => router.push('/(tabs)/cart' as any),
+        },
+      ]
+    );
   };
 
   return (
@@ -254,12 +333,11 @@ export default function ProductDetailScreen() {
               <Text style={styles.reviewCount}>(83)</Text>
             </View>
 
-            {/* Color and Size Selection */}
-            {(colors.length > 0 || sizes.length > 0) && (
+            {/* Color Selection */}
+            {(colors.length > 0 || true) && (
               <View>
                 <View style={styles.divider} />
                 <View style={styles.selectionRow}>
-                {/* Color Selection */}
                 {colors.length > 0 && (
                   <View style={styles.selectionGroup}>
                     <Text style={styles.selectionLabel}>Color</Text>
@@ -283,9 +361,9 @@ export default function ProductDetailScreen() {
                 )}
 
                 {/* Size Selection */}
-                {sizes.length > 0 && (
-                  <View style={styles.selectionGroup}>
-                    <Text style={styles.selectionLabel}>Size</Text>
+                <View style={styles.selectionGroup}>
+                  <Text style={styles.selectionLabel}>Size</Text>
+                  {sizes.length > 0 ? (
                     <View style={styles.sizeContainer}>
                       {sizes.map((size) => (
                         <TouchableOpacity
@@ -307,11 +385,40 @@ export default function ProductDetailScreen() {
                         </TouchableOpacity>
                       ))}
                     </View>
-                  </View>
-                )}
+                  ) : null}
+                </View>
                 </View>
               </View>
             )}
+
+            {/* Quantity Selector */}
+            <View style={styles.quantitySection}>
+              <Text style={styles.quantityLabel}>Quantity</Text>
+              <View style={styles.quantitySelector}>
+                <TouchableOpacity
+                  style={[styles.quantityButtonSmall, quantity <= 1 && styles.quantityButtonDisabled]}
+                  onPress={() => setQuantity(Math.max(1, quantity - 1))}
+                  disabled={quantity <= 1}
+                >
+                  <Ionicons name="remove" size={20} color={quantity <= 1 ? "#9CA3AF" : "#000"} />
+                </TouchableOpacity>
+                <Text style={styles.quantityText}>{quantity}</Text>
+                <TouchableOpacity
+                  style={[
+                    styles.quantityButtonSmall,
+                    quantity >= (product?.stockQuantity || 1) && styles.quantityButtonDisabled
+                  ]}
+                  onPress={() => setQuantity(Math.min(product?.stockQuantity || 1, quantity + 1))}
+                  disabled={quantity >= (product?.stockQuantity || 1)}
+                >
+                  <Ionicons 
+                    name="add" 
+                    size={20} 
+                    color={quantity >= (product?.stockQuantity || 1) ? "#9CA3AF" : "#000"} 
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
 
             {/* Description */}
             {product.description && (
@@ -476,7 +583,7 @@ export default function ProductDetailScreen() {
       {/* Add To Cart Button */}
       {product && (
         <View style={[styles.bottomBar, { paddingBottom: Platform.OS === 'ios' ? insets.bottom : 0 }]}>
-          <TouchableOpacity style={styles.addToCartButton}>
+          <TouchableOpacity style={styles.addToCartButton} onPress={handleAddToCart}>
             <Ionicons name="bag-outline" size={24} color="#FFF" />
             <Text style={styles.addToCartText}>Add To Cart</Text>
           </TouchableOpacity>
@@ -598,6 +705,46 @@ const styles = StyleSheet.create({
     color: '#000',
     marginBottom: 12,
   },
+  quantitySection: {
+    marginTop: 24,
+    marginBottom: 24,
+  },
+  quantityLabel: {
+    fontSize: 14,
+    fontFamily: 'Product Sans Medium',
+    fontWeight: '500',
+    color: '#000',
+    marginBottom: 12,
+  },
+  quantitySelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 4,
+    paddingVertical: 4,
+  },
+  quantityButtonSmall: {
+    padding: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: 36,
+  },
+  quantityButtonDisabled: {
+    opacity: 0.5,
+  },
+  quantityText: {
+    fontSize: 16,
+    fontFamily: 'Product Sans Medium',
+    fontWeight: '500',
+    color: '#000',
+    paddingHorizontal: 16,
+    minWidth: 40,
+    textAlign: 'center',
+  },
   colorContainer: {
     flexDirection: 'row',
     gap: 12,
@@ -631,6 +778,13 @@ const styles = StyleSheet.create({
   },
   sizeTextSelected: {
     color: '#FFF',
+  },
+  noSizeText: {
+    fontSize: 14,
+    fontFamily: 'Product Sans Medium',
+    fontWeight: '500',
+    color: '#6B7280',
+    fontStyle: 'italic',
   },
   sectionHeader: {
     flexDirection: 'row',

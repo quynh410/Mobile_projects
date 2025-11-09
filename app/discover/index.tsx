@@ -1,66 +1,126 @@
+import { getAllCategoriesNoPaging, getProductsByCategory } from '@/apis';
+import { CategoryResponse } from '@/types/category';
+import { ProductResponse } from '@/types/product';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-    Dimensions,
-    Image,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Dimensions,
+  Image,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
+const defaultColors = [
+  '#9CAF88',
+  '#B8A99A',
+  '#6B7B8C',
+  '#A8A5B8',
+  '#8B9DC3',
+  '#C8B99C',
+  '#9F8F8F',
+  '#B5A5A5',
+];
+
+interface CategoryWithProducts extends CategoryResponse {
+  products?: ProductResponse[];
+  isLoadingProducts?: boolean;
+  totalProducts?: number;
+}
+
 export default function DiscoverScreen() {
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState('');
+  const [categories, setCategories] = useState<CategoryWithProducts[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [expandedCategoryId, setExpandedCategoryId] = useState<number | null>(null);
 
-  const categories = [
-    {
-      id: 'clothing',
-      title: 'CLOTHING',
-      image: 'https://via.placeholder.com/200x250/9CAF88/FFFFFF?text=CLOTHING',
-      backgroundColor: '#9CAF88',
-    },
-    {
-      id: 'accessories',
-      title: 'ACCESSORIES',
-      image: 'https://via.placeholder.com/200x250/B8A99A/FFFFFF?text=ACCESSORIES',
-      backgroundColor: '#B8A99A',
-    },
-    {
-      id: 'shoes',
-      title: 'SHOES',
-      image: 'https://via.placeholder.com/200x250/6B7B8C/FFFFFF?text=SHOES',
-      backgroundColor: '#6B7B8C',
-    },
-    {
-      id: 'collection',
-      title: 'COLLECTION',
-      image: 'https://via.placeholder.com/200x250/A8A5B8/FFFFFF?text=COLLECTION',
-      backgroundColor: '#A8A5B8',
-    },
-  ];
+  useEffect(() => {
+    loadCategories();
+  }, []);
 
-  const clothingSubcategories = [
-    { name: 'Jacket', count: 120 },
-    { name: 'Skirts', count: 40 },
-    { name: 'Dresses', count: 36 },
-    { name: 'Sweaters', count: 24 },
-    { name: 'Jeans', count: 14 },
-    { name: 'T-Shirts', count: 12 },
-    { name: 'Pants', count: 9 },
-  ];
-
-  const handleCategoryPress = (categoryId: string) => {
-    if (categoryId === 'clothing') {
-      // Có thể navigate đến trang detail
-      console.log('Navigate to clothing detail');
+  const loadCategories = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await getAllCategoriesNoPaging();
+      if (response.data) {
+        setCategories(response.data.map(cat => ({ ...cat, products: [], isLoadingProducts: false })));
+      }
+    } catch (err: any) {
+      console.error('Error loading categories:', err);
+      setError(err.message || 'Không thể tải danh mục');
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  const handleCategoryPress = async (category: CategoryWithProducts) => {
+    // Toggle expand/collapse
+    if (expandedCategoryId === category.categoryId) {
+      setExpandedCategoryId(null);
+    } else {
+      setExpandedCategoryId(category.categoryId);
+      
+      // Load products if not already loaded
+      if (!category.products || category.products.length === 0) {
+        await loadCategoryProducts(category.categoryId);
+      }
+    }
+  };
+
+  const loadCategoryProducts = async (categoryId: number) => {
+    try {
+      setCategories(prev => prev.map(cat => 
+        cat.categoryId === categoryId 
+          ? { ...cat, isLoadingProducts: true }
+          : cat
+      ));
+
+      const response = await getProductsByCategory(categoryId, 0, 20);
+      if (response.data?.content) {
+        setCategories(prev => prev.map(cat => 
+          cat.categoryId === categoryId 
+            ? { 
+                ...cat, 
+                products: response.data!.content,
+                totalProducts: response.data!.totalElements,
+                isLoadingProducts: false
+              }
+            : cat
+        ));
+      }
+    } catch (err: any) {
+      console.error('Error loading category products:', err);
+      setCategories(prev => prev.map(cat => 
+        cat.categoryId === categoryId 
+          ? { ...cat, isLoadingProducts: false }
+          : cat
+      ));
+    }
+  };
+
+  const handleProductPress = (product: ProductResponse) => {
+    router.push(`/product/${product.productId}` as any);
+  };
+
+  const handleViewAllProducts = (category: CategoryResponse) => {
+    router.push({
+      pathname: '/products',
+      params: { categoryId: category.categoryId.toString() },
+    } as any);
+  };
+
+  const getCategoryBackgroundColor = (index: number): string => {
+    return defaultColors[index % defaultColors.length];
   };
 
   return (
@@ -98,61 +158,113 @@ export default function DiscoverScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} style={styles.scrollView}>
-        {/* Clothing Category with Subcategories */}
-        <View style={styles.categorySection}>
-          <TouchableOpacity
-            style={[styles.categoryBanner, { backgroundColor: categories[0].backgroundColor }]}
-            onPress={() => handleCategoryPress('clothing')}
-          >
-            <View style={styles.categoryBannerLeft}>
-              <Text style={styles.categoryBannerTitle}>{categories[0].title}</Text>
-            </View>
-            <Image
-              source={{ uri: categories[0].image }}
-              style={styles.categoryBannerImage}
-              resizeMode="cover"
-            />
-          </TouchableOpacity>
-
-          {/* Subcategories List */}
-          <View style={styles.subcategoriesContainer}>
-            {clothingSubcategories.map((subcat, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.subcategoryItem,
-                  index === clothingSubcategories.length - 1 && styles.subcategoryItemLast,
-                ]}
-              >
-                <Text style={styles.subcategoryName}>{subcat.name}</Text>
-                <View style={styles.subcategoryRight}>
-                  <Text style={styles.subcategoryCount}>{subcat.count} items</Text>
-                  <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#5D4037" />
+          <Text style={styles.loadingText}>Đang tải danh mục...</Text>
         </View>
-
-        {/* Other Categories */}
-        {categories.slice(1).map((category) => (
+      ) : error ? (
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle-outline" size={48} color="#EF4444" />
+          <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity
-            key={category.id}
-            style={[styles.categoryBanner, { backgroundColor: category.backgroundColor }]}
-            onPress={() => handleCategoryPress(category.id)}
+            style={styles.retryButton}
+            onPress={loadCategories}
           >
-            <View style={styles.categoryBannerLeft}>
-              <Text style={styles.categoryBannerTitle}>{category.title}</Text>
-            </View>
-            <Image
-              source={{ uri: category.image }}
-              style={styles.categoryBannerImage}
-              resizeMode="cover"
-            />
+            <Text style={styles.retryButtonText}>Thử lại</Text>
           </TouchableOpacity>
-        ))}
-      </ScrollView>
+        </View>
+      ) : categories.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="folder-outline" size={48} color="#9CA3AF" />
+          <Text style={styles.emptyText}>Không có danh mục nào</Text>
+        </View>
+      ) : (
+        <ScrollView showsVerticalScrollIndicator={false} style={styles.scrollView}>
+          {categories.map((category, index) => {
+            const isExpanded = expandedCategoryId === category.categoryId;
+            const categoryProducts = category.products || [];
+            
+            return (
+              <View key={category.categoryId} style={styles.categorySection}>
+                {/* Category Banner */}
+                <TouchableOpacity
+                  style={[
+                    styles.categoryBanner,
+                    { backgroundColor: getCategoryBackgroundColor(index) },
+                  ]}
+                  onPress={() => handleCategoryPress(category)}
+                >
+                  <View style={styles.categoryBannerLeft}>
+                    <Text style={styles.categoryBannerTitle}>
+                      {category.categoryName.toUpperCase()}
+                    </Text>
+                  </View>
+                  <View style={styles.categoryBannerRight}>
+                    {category.imageUrl ? (
+                      <Image
+                        source={{ uri: category.imageUrl }}
+                        style={styles.categoryBannerImage}
+                        resizeMode="contain"
+                      />
+                    ) : (
+                      <View style={styles.categoryBannerPlaceholder}>
+                        <Ionicons name="image-outline" size={48} color="#FFFFFF" />
+                      </View>
+                    )}
+                  </View>
+                </TouchableOpacity>
+
+                {/* Products List - Shown when expanded */}
+                {isExpanded && (
+                  <View style={styles.productsContainer}>
+                    {category.isLoadingProducts ? (
+                      <View style={styles.productsLoadingContainer}>
+                        <ActivityIndicator size="small" color="#5D4037" />
+                        <Text style={styles.productsLoadingText}>Đang tải sản phẩm...</Text>
+                      </View>
+                    ) : categoryProducts.length > 0 ? (
+                      <>
+                        {categoryProducts.map((product, productIndex) => (
+                          <TouchableOpacity
+                            key={product.productId}
+                            style={[
+                              styles.productItem,
+                              productIndex === categoryProducts.length - 1 && styles.productItemLast,
+                            ]}
+                            onPress={() => handleProductPress(product)}
+                          >
+                            <Text style={styles.productItemName}>
+                              {product.productName}
+                            </Text>
+                            <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                          </TouchableOpacity>
+                        ))}
+                        {category.totalProducts && category.totalProducts > categoryProducts.length && (
+                          <TouchableOpacity
+                            style={styles.viewAllButton}
+                            onPress={() => handleViewAllProducts(category)}
+                          >
+                            <Text style={styles.viewAllText}>
+                              Xem tất cả {category.totalProducts} sản phẩm
+                            </Text>
+                            <Ionicons name="arrow-forward" size={20} color="#5D4037" />
+                          </TouchableOpacity>
+                        )}
+                      </>
+                    ) : (
+                      <View style={styles.emptyProductsContainer}>
+                        <Ionicons name="cube-outline" size={48} color="#9CA3AF" />
+                        <Text style={styles.emptyProductsText}>Không có sản phẩm nào</Text>
+                      </View>
+                    )}
+                  </View>
+                )}
+              </View>
+            );
+          })}
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
@@ -225,8 +337,59 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  categorySection: {
-    marginBottom: 20,
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    fontFamily: 'Product Sans Medium',
+    fontWeight: '500',
+    color: '#6B7280',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+  },
+  errorText: {
+    marginTop: 16,
+    fontSize: 16,
+    fontFamily: 'Product Sans Medium',
+    fontWeight: '500',
+    color: '#EF4444',
+    textAlign: 'center',
+  },
+  retryButton: {
+    marginTop: 24,
+    backgroundColor: '#5D4037',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontFamily: 'Product Sans Medium',
+    fontWeight: '500',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyText: {
+    marginTop: 16,
+    fontSize: 16,
+    fontFamily: 'Product Sans Medium',
+    fontWeight: '500',
+    color: '#9CA3AF',
   },
   categoryBanner: {
     flexDirection: 'row',
@@ -235,6 +398,14 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     overflow: 'hidden',
     height: 160,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   categoryBannerLeft: {
     flex: 1,
@@ -245,21 +416,62 @@ const styles = StyleSheet.create({
   categoryBannerTitle: {
     fontSize: 24,
     fontFamily: 'Product Sans Medium',
-    fontWeight: '500',
+    fontWeight: '600',
     color: '#FFFFFF',
     letterSpacing: 1,
   },
-  categoryBannerImage: {
-    width: 200,
+  categoryBannerRight: {
+    width: 140,
     height: 160,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingRight: 16,
+    paddingVertical: 12,
   },
-  subcategoriesContainer: {
+  categoryBannerImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 12,
+  },
+  categoryBannerPlaceholder: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  categorySection: {
+    marginBottom: 20,
+  },
+  productsContainer: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     marginHorizontal: 20,
+    marginTop: -8,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  subcategoryItem: {
+  productsLoadingContainer: {
+    paddingVertical: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  productsLoadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    fontFamily: 'Product Sans Medium',
+    fontWeight: '400',
+    color: '#6B7280',
+  },
+  productItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -268,25 +480,44 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
   },
-  subcategoryItemLast: {
+  productItemLast: {
     borderBottomWidth: 0,
   },
-  subcategoryName: {
+  productItemName: {
+    flex: 1,
     fontSize: 16,
     fontFamily: 'Product Sans Medium',
     fontWeight: '500',
     color: '#000',
   },
-  subcategoryRight: {
+  viewAllButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+    backgroundColor: '#F9FAFB',
   },
-  subcategoryCount: {
+  viewAllText: {
     fontSize: 14,
     fontFamily: 'Product Sans Medium',
     fontWeight: '500',
-    color: '#1F2937',
+    color: '#5D4037',
+    marginRight: 8,
+  },
+  emptyProductsContainer: {
+    paddingVertical: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyProductsText: {
+    marginTop: 12,
+    fontSize: 14,
+    fontFamily: 'Product Sans Medium',
+    fontWeight: '400',
+    color: '#9CA3AF',
   },
 });
 

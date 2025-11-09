@@ -52,11 +52,9 @@ export const getSizesByProductId = async (productId: number): Promise<SizeListRe
     const response = await axiosInstance.get(`/v1/sizes/product/${productId}`);
     return response.data;
   } catch (err: any) {
-    // Xử lý các trường hợp lỗi phổ biến
     const status = err.response?.status;
     const errorMessage = err.response?.data?.error || '';
     
-    // 404: Sản phẩm không có sizes hoặc không tồn tại
     if (status === 404) {
       console.log(`Product ${productId} has no sizes (404)`);
       return {
@@ -66,7 +64,6 @@ export const getSizesByProductId = async (productId: number): Promise<SizeListRe
       };
     }
     
-    // 500 với "No static resource": Endpoint chưa được implement hoặc chưa được deploy
     if (status === 500 && errorMessage.includes('No static resource')) {
       console.warn(`Sizes endpoint not available for product ${productId} - backend may not be deployed`);
       return {
@@ -76,7 +73,6 @@ export const getSizesByProductId = async (productId: number): Promise<SizeListRe
       };
     }
     
-    // Các lỗi khác (500, 403, etc.) - trả về empty array để app không crash
     if (status >= 400) {
       console.warn(`Sizes API error ${status} for product ${productId}`);
       return {
@@ -93,7 +89,6 @@ export const getSizesByProductId = async (productId: number): Promise<SizeListRe
       error: err.response?.data?.error,
     });
     
-    // Network errors - trả về empty array
     if (err.code === 'ERR_NETWORK' || err.code === 'ECONNABORTED') {
       return {
         statusCode: 200,
@@ -102,7 +97,6 @@ export const getSizesByProductId = async (productId: number): Promise<SizeListRe
       };
     }
     
-    // Nếu không phải các trường hợp trên, trả về empty array để an toàn
     return {
       statusCode: 200,
       message: 'No sizes available',

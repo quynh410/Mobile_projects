@@ -1,8 +1,8 @@
-import { getAllProducts } from '@/apis';
+import { getAllProducts, getProductsByCategory } from '@/apis';
 import { ProductResponse } from '@/types/product';
 import { formatVND } from '@/utils/formatCurrency';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -23,6 +23,9 @@ const itemWidth = (width - 60) / 2;
 export default function AllProductsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const params = useLocalSearchParams<{ categoryId?: string }>();
+  const categoryId = params.categoryId ? parseInt(params.categoryId, 10) : undefined;
+  
   const [products, setProducts] = useState<ProductResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [page, setPage] = useState(0);
@@ -30,8 +33,12 @@ export default function AllProductsScreen() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   useEffect(() => {
-    loadProducts();
-  }, []);
+    // Reset when categoryId changes
+    setPage(0);
+    setProducts([]);
+    setHasMore(true);
+    loadProducts(0, false);
+  }, [categoryId]);
 
   const loadProducts = async (pageNum: number = 0, append: boolean = false) => {
     if (append) {
@@ -41,7 +48,13 @@ export default function AllProductsScreen() {
     }
 
     try {
-      const result = await getAllProducts(pageNum, 20, 'productId', 'DESC');
+      let result;
+      if (categoryId) {
+        result = await getProductsByCategory(categoryId, pageNum, 20);
+      } else {
+        result = await getAllProducts(pageNum, 20, 'productId', 'DESC');
+      }
+      
       if (result.data?.content) {
         const content = result.data.content;
         if (append) {
@@ -52,6 +65,7 @@ export default function AllProductsScreen() {
         const currentPage = result.data.number || 0;
         const totalPages = result.data.totalPages || 0;
         setHasMore(currentPage < totalPages - 1);
+        setPage(currentPage);
       }
     } catch (error) {
       console.error('Error loading products:', error);
@@ -64,7 +78,6 @@ export default function AllProductsScreen() {
   const loadMore = () => {
     if (!isLoadingMore && hasMore) {
       const nextPage = page + 1;
-      setPage(nextPage);
       loadProducts(nextPage, true);
     }
   };
@@ -110,7 +123,9 @@ export default function AllProductsScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>All Products</Text>
+        <Text style={styles.headerTitle}>
+          {categoryId ? 'Products by Category' : 'All Products'}
+        </Text>
         <View style={styles.headerRight} />
       </View>
 
