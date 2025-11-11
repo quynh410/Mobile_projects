@@ -1,5 +1,6 @@
 import { getAllProducts, getColorsByProductId, getProductById, getProductsByCategory, getSizesByProductId } from '@/apis';
 import { useCart } from '@/contexts/CartContext';
+import { useWishlist } from '@/contexts/WishlistContext';
 import { ColorResponse } from '@/types/color';
 import { ProductResponse } from '@/types/product';
 import { SizeResponse } from '@/types/size';
@@ -8,17 +9,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Dimensions,
-  FlatList,
-  Image,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    Dimensions,
+    FlatList,
+    Image,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -29,6 +30,7 @@ export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams();
   const insets = useSafeAreaInsets();
   const { addItem } = useCart();
+  const { addItem: addToWishlist, removeItem: removeFromWishlist, isInWishlist } = useWishlist();
   const [product, setProduct] = useState<ProductResponse | null>(null);
   const [colors, setColors] = useState<ColorResponse[]>([]);
   const [sizes, setSizes] = useState<SizeResponse[]>([]);
@@ -41,7 +43,6 @@ export default function ProductDetailScreen() {
   const [expandedDescription, setExpandedDescription] = useState(false);
   const [expandedReviews, setExpandedReviews] = useState(false);
   const [expandedSimilar, setExpandedSimilar] = useState(false);
-  const [isFavorite, setIsFavorite] = useState(false);
 
   useEffect(() => {
     loadProductData();
@@ -51,6 +52,24 @@ export default function ProductDetailScreen() {
     // Reset quantity when product changes
     setQuantity(1);
   }, [product?.productId]);
+
+  const handleToggleFavorite = () => {
+    if (!product) return;
+    
+    if (isInWishlist(product.productId)) {
+      removeFromWishlist(product.productId);
+    } else {
+      addToWishlist({
+        productId: product.productId,
+        productName: product.productName,
+        price: product.price,
+        imageUrl: product.imageUrl,
+        stockQuantity: product.stockQuantity,
+        categoryId: product.categoryId,
+        categoryName: product.categoryName,
+      });
+    }
+  };
 
   const loadProductData = async () => {
     if (!id) return;
@@ -269,13 +288,13 @@ export default function ProductDetailScreen() {
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
         <TouchableOpacity
-          onPress={() => setIsFavorite(!isFavorite)}
+          onPress={handleToggleFavorite}
           style={styles.headerButton}
         >
           <Ionicons
-            name={isFavorite ? "heart" : "heart-outline"}
+            name={product && isInWishlist(product.productId) ? "heart" : "heart-outline"}
             size={24}
-            color={isFavorite ? "#FF6B6B" : "#000"}
+            color={product && isInWishlist(product.productId) ? "#FF6B6B" : "#000"}
           />
         </TouchableOpacity>
       </View>

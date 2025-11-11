@@ -1,6 +1,7 @@
 import { getAllProducts } from '@/apis';
 import BannerCarousel from '@/components/BannerCarousel';
 import Sidebar from '@/components/Sidebar';
+import { useWishlist } from '@/contexts/WishlistContext';
 import { ProductResponse } from '@/types/product';
 import { formatVND } from '@/utils/formatCurrency';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,10 +24,27 @@ const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { addItem: addToWishlist, removeItem: removeFromWishlist, isInWishlist } = useWishlist();
   const [selectedCategory, setSelectedCategory] = useState('Women');
   const [featureProducts, setFeatureProducts] = useState<ProductResponse[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   const [sidebarVisible, setSidebarVisible] = useState(false);
+
+  const handleToggleFavorite = (product: ProductResponse) => {
+    if (isInWishlist(product.productId)) {
+      removeFromWishlist(product.productId);
+    } else {
+      addToWishlist({
+        productId: product.productId,
+        productName: product.productName,
+        price: product.price,
+        imageUrl: product.imageUrl,
+        stockQuantity: product.stockQuantity,
+        categoryId: product.categoryId,
+        categoryName: product.categoryName,
+      });
+    }
+  };
 
   useEffect(() => {
     loadFeatureProducts();
@@ -41,11 +59,6 @@ export default function HomeScreen() {
       }
     } catch (error) {
       console.error('Error loading products:', error);
-      setFeatureProducts([
-        { productId: 1, productName: 'Tur Beresh Sweater', price: 959760, imageUrl: 'https://via.placeholder.com/160x200/5D4037/FFFFFF?text=Sweater', stockQuantity: 10 },
-        { productId: 2, productName: 'Lang-Sleeve Dress', price: 1080000, imageUrl: 'https://via.placeholder.com/160x200/D4A574/FFFFFF?text=Dress', stockQuantity: 5 },
-        { productId: 3, productName: 'Product Name', price: 1920000, imageUrl: 'https://via.placeholder.com/160x200/E5E7EB/000000?text=Product', stockQuantity: 8 },
-      ]);
     } finally {
       setIsLoadingProducts(false);
     }
@@ -166,15 +179,27 @@ export default function HomeScreen() {
                   style={styles.productCard}
                   onPress={() => router.push(`/product/${product.productId}` as any)}
                 >
-                  <Image
-                    source={
-                      product.imageUrl
-                        ? { uri: product.imageUrl }
-                        : require('@/assets/images/24642656f175b762469766070dae1ee73196af89.png')
-                    }
-                    style={styles.productImage}
-                    resizeMode="cover"
-                  />
+                  <View style={styles.imageContainer}>
+                    <Image
+                      source={
+                        product.imageUrl
+                          ? { uri: product.imageUrl }
+                          : require('@/assets/images/24642656f175b762469766070dae1ee73196af89.png')
+                      }
+                      style={styles.productImage}
+                      resizeMode="cover"
+                    />
+                    <TouchableOpacity
+                      style={styles.favoriteButton}
+                      onPress={() => handleToggleFavorite(product)}
+                    >
+                      <Ionicons
+                        name={isInWishlist(product.productId) ? "heart" : "heart-outline"}
+                        size={20}
+                        color={isInWishlist(product.productId) ? "#FF6B6B" : "#000"}
+                      />
+                    </TouchableOpacity>
+                  </View>
                   <View style={styles.productInfo}>
                     <Text style={styles.productName} numberOfLines={2}>
                       {product.productName}
@@ -454,12 +479,31 @@ const styles = StyleSheet.create({
     width: 160,
     marginRight: 16,
   },
+  imageContainer: {
+    position: 'relative',
+    marginBottom: 12,
+  },
   productImage: {
     width: 160,
     height: 200,
     backgroundColor: '#F3F4F6',
     borderRadius: 12,
-    marginBottom: 12,
+  },
+  favoriteButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   productInfo: {
     minHeight: 60,

@@ -23,7 +23,7 @@ export default function TabLayout() {
         headerShown: false,
         tabBarActiveTintColor: '#5D4037',
         tabBarInactiveTintColor: '#9CA3AF',
-        tabBarShowLabel: false, // Bỏ chữ, chỉ hiển thị icon
+        tabBarShowLabel: false, 
         tabBarIconStyle: {
           marginTop: 4,
         },

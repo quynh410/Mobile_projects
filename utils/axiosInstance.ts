@@ -3,7 +3,7 @@ import axios from "axios";
 import { Platform } from "react-native";
 
 const getBaseURL = () => {
-  const API_BASE_URL = 'http://192.168.52.104:8080/api'
+  const API_BASE_URL = 'http://192.168.51.100:8080/api'
   
   if (Platform.OS === 'web') {
     return API_BASE_URL
@@ -28,7 +28,6 @@ axiosInstance.interceptors.request.use(
         config.headers.Authorization = `Bearer ${parsedToken}`;
       }
       
-      // If data is FormData, remove Content-Type header to let axios set it with boundary
       if (config.data instanceof FormData) {
         delete config.headers['Content-Type'];
       }

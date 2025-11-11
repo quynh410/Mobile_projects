@@ -52,7 +52,6 @@ export default function OrderDetailScreen() {
   };
 
   const generateTrackingNumber = (orderId: number) => {
-    // Generate a deterministic tracking number based on orderId
     const paddedId = String(orderId).padStart(4, '0');
     const hash = ((orderId * 12345) % 1000000).toString().padStart(6, '0');
     return `IK${paddedId}${hash}`;

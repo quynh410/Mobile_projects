@@ -71,7 +71,7 @@ export default function ProfileScreen() {
       id: 'wishlist',
       title: 'My Wishlist',
       icon: 'heart-outline',
-      onPress: () => console.log('Wishlist pressed'),
+      onPress: () => router.push('/wishlist' as any),
     },
     {
       id: 'rate',

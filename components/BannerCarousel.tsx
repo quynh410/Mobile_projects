@@ -75,7 +75,6 @@ export default function BannerCarousel({ data, interval = 4000 }: BannerCarousel
   );
 }
 
-/* 🔹 Full layout banner */
 const FullBanner = ({ item }: { item: BannerItem }) => (
   <ImageBackground
     source={item.source || { uri: item.uri }}
@@ -96,7 +95,6 @@ const FullBanner = ({ item }: { item: BannerItem }) => (
   </ImageBackground>
 );
 
-/* 🔸 Half layout banner */
 const HalfBanner = ({ item }: { item: BannerItem }) => (
   <View style={styles.halfBanner}>
     <View style={styles.textContainerLeft}>
@@ -118,7 +116,6 @@ const styles = StyleSheet.create({
   container: {
     marginVertical: 15,
   },
-  // 🔸 Full banner
   fullBanner: {
     width: width * 0.9,
     height: 200,
@@ -142,7 +139,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     lineHeight: 34,
   },
-  // 🔹 Half banner
   halfBanner: {
     width: width * 0.9,
     height: 180,
@@ -178,7 +174,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#e9e9ef",
   },
   halfImage: { width: 160, height: "100%" },
-  // Pagination
   pagination: {
     position: "absolute",
     bottom: 16,

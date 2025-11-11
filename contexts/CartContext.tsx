@@ -31,7 +31,6 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     loadCart();
   }, []);
 
-  // Save cart to storage whenever items change (only after initial load)
   React.useEffect(() => {
     if (isLoaded) {
       const saveCart = async () => {
@@ -45,7 +44,6 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     }
   }, [items, isLoaded]);
 
-  // Generate unique ID for cart item
   const generateCartItemId = (
     productId: number,
     colorId?: number,
@@ -63,7 +61,6 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
         const existingItem = prevItems.find((i) => i.id === id);
 
         if (existingItem) {
-          // If item exists, update quantity (don't exceed stock)
           const newQuantity = Math.min(
             existingItem.quantity + quantity,
             item.stockQuantity
@@ -72,7 +69,6 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
             i.id === id ? { ...i, quantity: newQuantity } : i
           );
         } else {
-          // Add new item
           return [
             ...prevItems,
             {

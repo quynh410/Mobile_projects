@@ -64,13 +64,11 @@ export default function DiscoverScreen() {
   };
 
   const handleCategoryPress = async (category: CategoryWithProducts) => {
-    // Toggle expand/collapse
     if (expandedCategoryId === category.categoryId) {
       setExpandedCategoryId(null);
     } else {
       setExpandedCategoryId(category.categoryId);
       
-      // Load products if not already loaded
       if (!category.products || category.products.length === 0) {
         await loadCategoryProducts(category.categoryId);
       }
