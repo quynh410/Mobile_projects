@@ -52,7 +52,6 @@ export default function FilterScreen() {
       }
       
       if (colorsRes.data) {
-        // Get unique colors by name
         const uniqueColors = colorsRes.data.reduce((acc: ColorResponse[], color) => {
           if (!acc.find(c => c.colorName.toLowerCase() === color.colorName.toLowerCase())) {
             acc.push(color);

@@ -3,7 +3,7 @@ import axios from "axios";
 import { Platform } from "react-native";
 
 const getBaseURL = () => {
-  const API_BASE_URL = 'http://192.168.51.100:8080/api'
+  const API_BASE_URL = 'http://192.168.52.101:8080/api'
   
   if (Platform.OS === 'web') {
     return API_BASE_URL

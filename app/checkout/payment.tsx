@@ -5,7 +5,7 @@ import { formatVND } from '@/utils/formatCurrency';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -51,25 +51,33 @@ export default function PaymentScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod>('credit');
   const [agreeToTerms, setAgreeToTerms] = useState(false);
-  const [shippingData, setShippingData] = useState<ShippingData | null>(null);
+
+  const shippingData = useMemo(() => {
+    const shippingDataString = params.shippingData as string | undefined;
+    if (!shippingDataString) return null;
+    
+    try {
+      return JSON.parse(shippingDataString) as ShippingData;
+    } catch (error) {
+      console.error('Error parsing shipping data:', error);
+      return null;
+    }
+  }, []);
 
   useEffect(() => {
     loadUserData();
-    // Load shipping data from params
-    if (params.shippingData) {
-      try {
-        setShippingData(JSON.parse(params.shippingData as string));
-      } catch (error) {
-        console.error('Error parsing shipping data:', error);
-        Alert.alert('Lỗi', 'Thông tin shipping không hợp lệ', [
-          {
-            text: 'OK',
-            onPress: () => router.back(),
-          },
-        ]);
-      }
+  }, []);
+
+  useEffect(() => {
+    if (params.shippingData && !shippingData) {
+      Alert.alert('Lỗi', 'Thông tin shipping không hợp lệ', [
+        {
+          text: 'OK',
+          onPress: () => router.back(),
+        },
+      ]);
     }
-  }, [params]);
+  }, []);
 
   const loadUserData = async () => {
     try {
@@ -102,7 +110,6 @@ export default function PaymentScreen() {
 
     setIsLoading(true);
     try {
-      // Build shipping address
       const addressParts = [
         shippingData.streetName,
         shippingData.city,
@@ -112,27 +119,21 @@ export default function PaymentScreen() {
       ].filter(Boolean);
       const shippingAddress = `${shippingData.firstName} ${shippingData.lastName}, ${addressParts.join(', ')}, Phone: ${shippingData.phoneNumber}`;
 
-      // Build order items
       const orderItems = items.map((item) => ({
         productId: item.productId,
         quantity: item.quantity,
       }));
 
-      // Create order request
       const orderRequest: OrderRequest = {
         userId: parseInt(userData.id, 10),
         shippingAddress,
         orderItems,
       };
 
-      // Call API to create order
       const response = await createOrder(orderRequest);
 
       if (response.data) {
-        // Clear cart after successful order
         clearCart();
-
-        // Navigate to order completed screen
         router.replace('/checkout/order-completed' as any);
       } else {
         Alert.alert('Lỗi', response.message || 'Không thể tạo đơn hàng');
@@ -199,7 +200,6 @@ export default function PaymentScreen() {
           {/* STEP 2 Payment */}
           <Text style={styles.sectionTitle}>STEP 2 Payment</Text>
 
-          {/* Payment Method Selection */}
           <View style={styles.paymentMethodContainer}>
             <TouchableOpacity
               style={[

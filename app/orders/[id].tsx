@@ -82,7 +82,6 @@ export default function OrderDetailScreen() {
   };
 
   const handleRate = () => {
-    // TODO: Navigate to rating screen
     console.log('Rate order:', order?.orderId);
   };
 
@@ -112,7 +111,7 @@ export default function OrderDetailScreen() {
   }
 
   const statusMessage = getStatusMessage(order.orderStatus);
-  const shippingCost = 0; // Free shipping
+  const shippingCost = 0;
 
   return (
     <SafeAreaView style={styles.container} edges={[]}>
@@ -131,8 +130,6 @@ export default function OrderDetailScreen() {
             <Text style={styles.headerTitle}>Order #{order.orderId}</Text>
             <View style={styles.headerSpacer} />
           </View>
-
-        {/* Status Banner - Only show for DELIVERED orders */}
         {order.orderStatus === OrderStatus.DELIVERED && statusMessage && (
           <View style={styles.statusBanner}>
             <View style={styles.statusBannerContent}>

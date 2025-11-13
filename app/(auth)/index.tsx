@@ -28,8 +28,27 @@ export default function RegisterScreen() {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSignUp = async () => {
-    if (!firstName.trim() || !lastName.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
-      Alert.alert('Lỗi', 'Vui lòng điền đầy đủ thông tin');
+    if (!firstName.trim()) {
+      Alert.alert('Lỗi', 'Vui lòng nhập tên');
+      return;
+    }
+
+    if (!lastName.trim()) {
+      Alert.alert('Lỗi', 'Vui lòng nhập họ');
+      return;
+    }
+
+    if (!email.trim()) {
+      Alert.alert('Lỗi', 'Vui lòng nhập email');
+      return;
+    }
+    if (!password || !password.trim()) {
+      Alert.alert('Lỗi', 'Vui lòng nhập mật khẩu');
+      return;
+    }
+
+    if (!confirmPassword || !confirmPassword.trim()) {
+      Alert.alert('Lỗi', 'Vui lòng xác nhận mật khẩu');
       return;
     }
 
@@ -44,23 +63,24 @@ export default function RegisterScreen() {
     }
 
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    if (!emailRegex.test(email)) {
+    if (!emailRegex.test(email.trim())) {
       Alert.alert('Lỗi', 'Email không đúng định dạng');
       return;
     }
 
-    if (password.length < 6 || password.length > 100) {
+    const trimmedPassword = password.trim();
+    if (trimmedPassword.length < 6 || trimmedPassword.length > 100) {
       Alert.alert('Lỗi', 'Mật khẩu phải từ 6-100 ký tự');
       return;
     }
 
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).*$/;
-    if (!passwordRegex.test(password)) {
+    if (!passwordRegex.test(trimmedPassword)) {
       Alert.alert('Lỗi', 'Mật khẩu phải chứa ít nhất 1 chữ hoa, 1 chữ thường và 1 số');
       return;
     }
 
-    if (password !== confirmPassword) {
+    if (trimmedPassword !== confirmPassword.trim()) {
       Alert.alert('Lỗi', 'Mật khẩu xác nhận không khớp');
       return;
     }
@@ -71,7 +91,7 @@ export default function RegisterScreen() {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         email: email.trim(),
-        password,
+        password: trimmedPassword,
         phoneNumber: '0000000000', 
         gender: 'MALE', 
       });

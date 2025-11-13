@@ -64,3 +64,24 @@ export interface ErrorResponse {
   };
 }
 
+export interface UpdateProfileRequest {
+  fullName?: string;
+  firstName?: string;
+  lastName?: string;
+  gender?: 'MALE' | 'FEMALE';
+  phoneNumber?: string;
+  address?: string;
+  avatarUrl?: string;
+  avatar?: any; // File/FormData for upload
+}
+
+export interface UserDTO {
+  id: number;
+  name: string;
+  email: string;
+  phoneNumber?: string;
+  gender?: 'MALE' | 'FEMALE';
+  avatarUrl?: string;
+  address?: string;
+}
+

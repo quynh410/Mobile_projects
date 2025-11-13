@@ -1,24 +1,27 @@
+import { getCurrentProfile, updateProfile } from '@/apis/usersApi';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-    Alert,
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface UserData {
-  id: string;
+  id: number | string;
   name?: string;
   firstName?: string;
   lastName?: string;
@@ -26,6 +29,13 @@ interface UserData {
   phoneNumber?: string;
   gender?: 'MALE' | 'FEMALE';
   avatarUrl?: string;
+  address?: string;
+}
+
+interface SelectedImage {
+  uri: string;
+  type: string;
+  fileName?: string;
 }
 
 export default function ProfileSettingScreen() {
@@ -36,57 +46,154 @@ export default function ProfileSettingScreen() {
   const [email, setEmail] = useState('');
   const [gender, setGender] = useState<'MALE' | 'FEMALE'>('FEMALE');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [address, setAddress] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [selectedImage, setSelectedImage] = useState<SelectedImage | null>(null);
 
   useEffect(() => {
-    loadUserData();
+    loadUserProfile();
   }, []);
 
-  const loadUserData = async () => {
+  const loadUserProfile = async () => {
+    setIsLoadingProfile(true);
     try {
-      const userDataString = await AsyncStorage.getItem('userData');
-      if (userDataString) {
-        const user = JSON.parse(userDataString);
-        setUserData(user);
+        try {
+          const profile = await getCurrentProfile();          
+          setUserData({
+            id: profile.id,
+            name: profile.name,
+            email: profile.email,
+            phoneNumber: profile.phoneNumber,
+            gender: profile.gender,
+            avatarUrl: profile.avatarUrl,
+            address: profile.address,
+          });
 
-        if (user.name && !user.firstName && !user.lastName) {
-          const nameParts = user.name.split(' ');
-          setFirstName(nameParts[0] || '');
-          setLastName(nameParts.slice(1).join(' ') || '');
-        } else {
-          setFirstName(user.firstName || '');
-          setLastName(user.lastName || '');
+          if (profile.name) {
+            const nameParts = profile.name.trim().split(' ').filter(part => part.length > 0);
+            if (nameParts.length > 1) {
+              setFirstName(nameParts[nameParts.length - 1] || '');
+              setLastName(nameParts.slice(0, nameParts.length - 1).join(' ') || '');
+            } else if (nameParts.length === 1) {
+              setFirstName(nameParts[0] || '');
+              setLastName('');
+            } else {
+              setFirstName('');
+              setLastName('');
+            }
+          }
+
+        setEmail(profile.email || '');
+        setGender(profile.gender || 'FEMALE');
+        setPhoneNumber(profile.phoneNumber || '');
+        setAddress(''); 
+        await AsyncStorage.setItem('userData', JSON.stringify({
+          id: profile.id.toString(),
+          name: profile.name,
+          email: profile.email,
+          phoneNumber: profile.phoneNumber,
+          gender: profile.gender,
+          avatarUrl: profile.avatarUrl,
+        }));
+      } catch (apiError) {
+        console.error('Error loading from API, trying AsyncStorage:', apiError);
+        const userDataString = await AsyncStorage.getItem('userData');
+        if (userDataString) {
+          const user = JSON.parse(userDataString);
+          setUserData(user);
+
+          if (user.name && !user.firstName && !user.lastName) {
+            const nameParts = user.name.trim().split(' ').filter((part: string) => part.length > 0);
+            if (nameParts.length > 1) {
+              setFirstName(nameParts[nameParts.length - 1] || '');
+              setLastName(nameParts.slice(0, nameParts.length - 1).join(' ') || '');
+            } else if (nameParts.length === 1) {
+              setFirstName(nameParts[0] || '');
+              setLastName('');
+            } else {
+              setFirstName('');
+              setLastName('');
+            }
+          } else {
+            setFirstName(user.firstName || '');
+            setLastName(user.lastName || '');
+          }
+
+          setEmail(user.email || '');
+          setGender(user.gender || 'FEMALE');
+          setPhoneNumber(user.phoneNumber || '');
+          setAddress(user.address || '');
         }
-
-        setEmail(user.email || '');
-        setGender(user.gender || 'FEMALE');
-        setPhoneNumber(user.phoneNumber || '');
       }
     } catch (error) {
       console.error('Error loading user data:', error);
+      Alert.alert('Lỗi', 'Không thể tải thông tin profile');
+    } finally {
+      setIsLoadingProfile(false);
     }
   };
 
   const handleSaveChanges = async () => {
-    if (!firstName.trim() || !lastName.trim() || !email.trim()) {
-      Alert.alert('Lỗi', 'Vui lòng điền đầy đủ thông tin bắt buộc');
+    if (!firstName.trim() || !lastName.trim()) {
+      Alert.alert('Lỗi', 'Vui lòng điền đầy đủ họ và tên');
+      return;
+    }
+
+    if (!userData?.id) {
+      Alert.alert('Lỗi', 'Không tìm thấy thông tin người dùng');
       return;
     }
 
     setIsLoading(true);
     try {
-      const updatedUserData = {
-        ...userData,
+      const fullName = `${lastName.trim()} ${firstName.trim()}`.trim();
+      
+      const updateData: any = {
+        fullName,
         firstName: firstName.trim(),
         lastName: lastName.trim(),
-        name: `${firstName.trim()} ${lastName.trim()}`,
-        email: email.trim(),
         gender,
-        phoneNumber: phoneNumber.trim(),
       };
 
-      await AsyncStorage.setItem('userData', JSON.stringify(updatedUserData));
-      setUserData(updatedUserData as UserData);
+      if (phoneNumber.trim()) {
+        updateData.phoneNumber = phoneNumber.trim();
+      }
+
+      if (address.trim()) {
+        updateData.address = address.trim();
+      }
+
+      if (selectedImage) {
+        updateData.avatar = selectedImage;
+      }
+
+      const updatedProfile = await updateProfile(Number(userData.id), updateData);
+
+      const updatedUserData: UserData = {
+        id: updatedProfile.id,
+        name: updatedProfile.name,
+        email: updatedProfile.email,
+        phoneNumber: updatedProfile.phoneNumber,
+        gender: updatedProfile.gender,
+        avatarUrl: updatedProfile.avatarUrl,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        address: address.trim(),
+      };
+
+      setUserData(updatedUserData);
+      setSelectedImage(null); 
+
+      await AsyncStorage.setItem('userData', JSON.stringify({
+        id: updatedProfile.id.toString(),
+        name: updatedProfile.name,
+        email: updatedProfile.email,
+        phoneNumber: updatedProfile.phoneNumber,
+        gender: updatedProfile.gender,
+        avatarUrl: updatedProfile.avatarUrl,
+        address: updatedProfile.address,
+      }));
 
       Alert.alert('Thành công', 'Đã cập nhật thông tin thành công', [
         {
@@ -94,16 +201,55 @@ export default function ProfileSettingScreen() {
           onPress: () => router.back(),
         },
       ]);
-    } catch (error) {
-      console.error('Error saving user data:', error);
-      Alert.alert('Lỗi', 'Không thể lưu thông tin');
+    } catch (error: any) {
+      console.error('Error updating profile:', error);
+      Alert.alert('Lỗi', error.message || 'Không thể cập nhật thông tin');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleEditProfilePicture = () => {
-    Alert.alert('Thông báo', 'Tính năng đang phát triển');
+  const handleEditProfilePicture = async () => {
+    // Yêu cầu quyền truy cập thư viện ảnh
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Cần quyền truy cập', 'Ứng dụng cần quyền truy cập thư viện ảnh để chọn avatar');
+      return;
+    }
+
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+        allowsMultipleSelection: false,
+      });
+
+      if (!result.canceled && result.assets && result.assets[0]) {
+        const asset = result.assets[0];
+        let fileName = 'avatar.jpg';
+        if (asset.uri) {
+          const uriParts = asset.uri.split('/');
+          const lastPart = uriParts[uriParts.length - 1];
+          if (lastPart && lastPart.includes('.')) {
+            fileName = lastPart;
+          } else {
+            const extension = asset.mimeType?.split('/')[1] || 'jpg';
+            fileName = `avatar.${extension}`;
+          }
+        }
+
+        setSelectedImage({
+          uri: asset.uri,
+          type: asset.mimeType || 'image/jpeg',
+          fileName: fileName,
+        });
+      }
+    } catch (error: any) {
+      console.error('Error picking image:', error);
+      Alert.alert('Lỗi', error.message || 'Không thể chọn ảnh');
+    }
   };
 
   return (
@@ -113,6 +259,12 @@ export default function ProfileSettingScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
+        {isLoadingProfile ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#4B5563" />
+            <Text style={styles.loadingText}>Đang tải thông tin...</Text>
+          </View>
+        ) : (
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
@@ -131,7 +283,9 @@ export default function ProfileSettingScreen() {
           <View style={styles.profilePictureSection}>
             <View style={styles.profilePictureContainer}>
               <View style={styles.profilePicture}>
-                {userData?.avatarUrl ? (
+                {selectedImage ? (
+                  <Image source={{ uri: selectedImage.uri }} style={styles.profileImage} />
+                ) : userData?.avatarUrl ? (
                   <Image source={{ uri: userData.avatarUrl }} style={styles.profileImage} />
                 ) : (
                   <View style={styles.profilePlaceholder}>
@@ -213,19 +367,35 @@ export default function ProfileSettingScreen() {
                 />
               </View>
             </View>
+
+            <View style={styles.formField}>
+              <Text style={styles.label}>Address</Text>
+              <TextInput
+                style={styles.input}
+                value={address}
+                onChangeText={setAddress}
+                placeholder="Address"
+                placeholderTextColor="#9CA3AF"
+                multiline
+                numberOfLines={2}
+              />
+            </View>
           </View>
         </ScrollView>
+        )}
 
         {/* Save Button */}
         <View style={styles.footer}>
           <TouchableOpacity
-            style={styles.saveButton}
+            style={[styles.saveButton, (isLoading || isLoadingProfile) && styles.saveButtonDisabled]}
             onPress={handleSaveChanges}
-            disabled={isLoading}
+            disabled={isLoading || isLoadingProfile}
           >
-            <Text style={styles.saveButtonText}>
-              {isLoading ? 'Saving...' : 'Save change'}
-            </Text>
+            {isLoading ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text style={styles.saveButtonText}>Save change</Text>
+            )}
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -380,6 +550,22 @@ const styles = StyleSheet.create({
     fontFamily: 'Product Sans Medium',
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  saveButtonDisabled: {
+    opacity: 0.6,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 14,
+    fontFamily: 'Product Sans Medium',
+    fontWeight: '500',
+    color: '#6B7280',
   },
 });
 

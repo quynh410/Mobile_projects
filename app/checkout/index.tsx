@@ -38,7 +38,6 @@ export default function CheckoutScreen() {
   const { items } = useCart();
   const [userData, setUserData] = useState<UserData | null>(null);
 
-  // Form fields
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [country, setCountry] = useState('');
@@ -52,7 +51,6 @@ export default function CheckoutScreen() {
 
   useEffect(() => {
     loadUserData();
-    // Auto-fill first name if available
     if (userData?.name) {
       const nameParts = userData.name.split(' ');
       if (nameParts.length > 0) {
@@ -101,6 +99,14 @@ export default function CheckoutScreen() {
     }
     if (!phoneNumber.trim()) {
       newErrors.phoneNumber = 'Field is required';
+    } else {
+      const cleanedPhone = phoneNumber.replace(/\s+/g, '').replace(/[^\d]/g, '');
+      
+      if (!/^\d+$/.test(cleanedPhone)) {
+        newErrors.phoneNumber = 'Phone number must contain only numbers';
+      } else if (cleanedPhone.length !== 10) {
+        newErrors.phoneNumber = 'Phone number must be exactly 10 digits';
+      }
     }
 
     setErrors(newErrors);
@@ -150,7 +156,8 @@ export default function CheckoutScreen() {
     onChangeText: (text: string) => void,
     error?: string,
     placeholder?: string,
-    required: boolean = true
+    required: boolean = true,
+    keyboardType?: 'default' | 'numeric' | 'email-address' | 'phone-pad'
   ) => {
     return (
       <View style={styles.inputContainer}>
@@ -163,6 +170,7 @@ export default function CheckoutScreen() {
           onChangeText={onChangeText}
           placeholder={placeholder}
           placeholderTextColor="#9CA3AF"
+          keyboardType={keyboardType || 'default'}
         />
         {error && <Text style={styles.errorText}>{error}</Text>}
       </View>
@@ -214,10 +222,8 @@ export default function CheckoutScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* STEP 1 Shipping */}
           <Text style={styles.sectionTitle}>STEP 1 Shipping</Text>
 
-          {/* Shipping Information */}
           <View style={styles.formSection}>
             {renderInputField('First name', firstName, setFirstName, errors.firstName, 'First name', true)}
             {renderInputField('Last name', lastName, setLastName, errors.lastName, 'Last name', true)}
@@ -226,10 +232,9 @@ export default function CheckoutScreen() {
             {renderInputField('City', city, setCity, errors.city, 'City', true)}
             {renderInputField('State / Province', state, setState, undefined, 'State / Province', false)}
             {renderInputField('Zip-code', zipCode, setZipCode, errors.zipCode, 'Zip-code', true)}
-            {renderInputField('Phone number', phoneNumber, setPhoneNumber, errors.phoneNumber, 'Phone number', true)}
+            {renderInputField('Phone number', phoneNumber, setPhoneNumber, errors.phoneNumber, 'Phone number', true, 'phone-pad')}
           </View>
 
-          {/* Shipping Method */}
           <View style={styles.shippingMethodSection}>
             <Text style={styles.sectionSubtitle}>Shipping method</Text>
             <View style={styles.shippingOption}>
@@ -246,7 +251,6 @@ export default function CheckoutScreen() {
           </View>
         </ScrollView>
 
-        {/* Continue to Payment Button */}
         <View style={[styles.bottomBar, { paddingBottom: Platform.OS === 'ios' ? insets.bottom : 16 }]}>
           <TouchableOpacity
             style={styles.continueButton}

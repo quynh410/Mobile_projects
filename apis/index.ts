@@ -14,5 +14,5 @@ export { cancelOrder, createOrder, getAllOrders, getOrderById, getOrdersByUser, 
 export { getAllProducts, getProductById, getProductsByCategory, searchProducts } from './productApi';
 export { registerUser } from './registerApi';
 export { createSize, deleteSize, getAllSizes, getSizeById, getSizesByProductId, updateSize } from './sizeApi';
-export { getAllUsers } from './usersApi';
+export { getAllUsers, getCurrentProfile, updateProfile } from './usersApi';
 

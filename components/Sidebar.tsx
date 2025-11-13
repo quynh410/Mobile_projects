@@ -5,6 +5,7 @@ import React, { useEffect, useState } from 'react';
 import {
   Animated,
   Dimensions,
+  Image,
   Modal,
   ScrollView,
   StyleSheet,
@@ -21,6 +22,7 @@ interface UserData {
   id: string;
   name: string;
   email: string;
+  avatarUrl?: string;
 }
 
 interface SidebarProps {
@@ -48,6 +50,12 @@ export default function Sidebar({ visible, onClose }: SidebarProps) {
   useEffect(() => {
     loadUserData();
   }, []);
+
+  useEffect(() => {
+    if (visible) {
+      loadUserData();
+    }
+  }, [visible]);
 
   useEffect(() => {
     if (visible) {
@@ -214,7 +222,15 @@ export default function Sidebar({ visible, onClose }: SidebarProps) {
               <View style={styles.profileSection}>
                 <View style={styles.avatarContainer}>
                   <View style={styles.avatar}>
-                    <Ionicons name="person" size={40} color="#9CA3AF" />
+                    {userData?.avatarUrl ? (
+                      <Image 
+                        source={{ uri: userData.avatarUrl }} 
+                        style={styles.avatarImage}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <Ionicons name="person" size={40} color="#9CA3AF" />
+                    )}
                   </View>
                 </View>
                 <Text style={styles.userName}>
@@ -394,6 +410,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
   },
   userName: {
     fontSize: 18,

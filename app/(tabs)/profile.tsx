@@ -1,14 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Image, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface UserData {
   id: string;
   name: string;
   email: string;
+  avatarUrl?: string;
 }
 
 interface MenuItem {
@@ -25,6 +26,12 @@ export default function ProfileScreen() {
   useEffect(() => {
     loadUserData();
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadUserData();
+    }, [])
+  );
 
   const loadUserData = async () => {
     try {
@@ -98,9 +105,17 @@ export default function ProfileScreen() {
         <View style={styles.profileHeader}>
           <View style={styles.avatarContainer}>
             <View style={styles.avatar}>
-              <Text style={styles.avatarText}>
-                {userData?.name?.charAt(0).toUpperCase() || 'U'}
-              </Text>
+              {userData?.avatarUrl ? (
+                <Image 
+                  source={{ uri: userData.avatarUrl }} 
+                  style={styles.avatarImage}
+                  resizeMode="cover"
+                />
+              ) : (
+                <Text style={styles.avatarText}>
+                  {userData?.name?.charAt(0).toUpperCase() || 'U'}
+                </Text>
+              )}
             </View>
           </View>
           <View style={styles.profileInfo}>
@@ -164,6 +179,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
   },
   avatarText: {
     fontSize: 32,
